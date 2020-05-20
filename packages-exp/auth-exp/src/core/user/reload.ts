@@ -22,7 +22,6 @@ import {
   ProviderUserInfo
 } from '../../api/account_management/account';
 import { User } from '../../model/user';
-import { ProviderId } from '../providers';
 import { assert } from '../util/assert';
 
 export async function _reloadWithoutSaving(user: User): Promise<void> {
@@ -80,7 +79,7 @@ function extractProviderData(
 ): externs.UserInfo[] {
   return providers.map(({ providerId, ...provider }) => {
     assert(
-      providerId && Object.values<string>(ProviderId).includes(providerId),
+      providerId && Object.values<string>(externs.ProviderId).includes(providerId),
       appName
     );
     return {
@@ -88,7 +87,7 @@ function extractProviderData(
       displayName: provider.displayName || null,
       email: provider.email || null,
       phoneNumber: provider.phoneNumber || null,
-      providerId: providerId as ProviderId,
+      providerId: providerId as externs.ProviderId,
       photoURL: provider.photoUrl || null
     };
   });
