@@ -22,6 +22,7 @@ import {
   BundleElement,
   BundleMetadata
 } from '../protos/firestore_bundle_proto';
+import { ByteStreamReader, PlatformSupport } from '../platform/platform';
 
 /**
  * A complete element in the bundle stream, together with the byte length it
@@ -35,29 +36,6 @@ export class SizedBundleElement {
 }
 
 /**
- * Create a `ReadableStream` from a underlying buffer.
- *
- * @param data: Underlying buffer.
- * @param bytesPerRead: How many bytes to read from the underlying buffer from each read through the stream.
- */
-export function toReadableStream(
-  data: Uint8Array | ArrayBuffer,
-  bytesPerRead = 10240
-): ReadableStream<Uint8Array | ArrayBuffer> {
-  let readFrom = 0;
-  return new ReadableStream({
-    start(controller) {},
-    async pull(controller): Promise<void> {
-      controller.enqueue(data.slice(readFrom, readFrom + bytesPerRead));
-      readFrom += bytesPerRead;
-      if (readFrom >= data.byteLength) {
-        controller.close();
-      }
-    }
-  });
-}
-
-/**
  * A class representing a bundle.
  *
  * Takes a bundle stream or buffer, and presents abstractions to read bundled
@@ -66,8 +44,8 @@ export function toReadableStream(
 export class Bundle {
   // Cached bundle metadata.
   private metadata?: BundleMetadata | null;
-  // The reader instance of the given ReadableStream.
-  private reader: ReadableStreamDefaultReader;
+  // The reader to read from underlying binary bundle data source.
+  private reader: ByteStreamReader;
   // Internal buffer to hold bundle content, accumulating incomplete element content.
   private buffer: Uint8Array = new Uint8Array();
   private textDecoder = new TextDecoder('utf-8');
@@ -78,13 +56,9 @@ export class Bundle {
       | Uint8Array
       | ArrayBuffer
   ) {
-    if (
-      bundleStream instanceof Uint8Array ||
-      bundleStream instanceof ArrayBuffer
-    ) {
-      this.bundleStream = toReadableStream(bundleStream);
-    }
-    this.reader = (this.bundleStream as ReadableStream).getReader();
+    this.reader = PlatformSupport.getPlatform().toByteStreamReader(
+      bundleStream
+    );
   }
 
   /**
